@@ -1,5 +1,4 @@
 import os
-import re
 
 
 def generate_catalog():
@@ -19,25 +18,28 @@ def generate_catalog():
         # 扫描所有的 .md 文件
         files = sorted([f for f in os.listdir(folder) if f.endswith(".md")])
         for filename in files:
-            # 原始文件路径
             file_path = f"{folder}/{filename}"
 
-            # 读取文件里的标题
+            # 默认标题就是你的文件名（去掉.md）
+            title = filename.replace(".md", "")
+
+            # 🌟 终极修复 1：逐行扫描，只要找到带 # 的真正标题就立刻替换并跳出！
+            # 再也不怕第一行是空行了！
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
-                    line = f.readline().strip()
-                    title = line.replace("# 📖 阅读笔记：", "").replace("#", "").strip()
-                    if not title:  # 如果第一行是空的，就用文件名
-                        title = filename.replace(".md", "")
-            except:
-                title = filename.replace(".md", "")
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("#"):
+                            # 提取真正的标题文字
+                            title = line.replace("# 📖 阅读笔记：", "").replace("#", "").strip()
+                            break  # 找到了真正的标题，立刻停止扫描
+            except Exception as e:
+                print(f"⚠️ 读取 {filename} 失败，将使用文件名作为标题。")
 
-            # 🌟 标题处理：使用 HTML 实体编码处理中括号
-            # &#91; = [ , &#93; = ]，这样既能正常显示，又不会破坏 Markdown 语法
+            # 处理标题里的中括号，使用 HTML 实体替换，保护 Markdown 不崩溃
             safe_title = title.replace("[", "&#91;").replace("]", "&#93;")
 
-            # 🌟 路径处理：GFM 的尖括号语法可以完美处理特殊字符
-            # 注意末尾的 \n 绝对不能少！
+            # 使用尖括号语法保护路径，末尾加上换行符 \n
             catalog_lines.append(f"- [x] [{safe_title}](<{file_path}>)\n")
 
     return "".join(catalog_lines)
@@ -49,23 +51,24 @@ def update_readme():
 
     new_catalog = generate_catalog()
 
-    # 🚨 这里绝对不能是空的！必须是你的注释标签！
     start_label = ""
     end_label = ""
 
-    if start_label not in content or end_label not in content:
-        print(f"❌ 错误：在 README.md 中找不到标签！请检查拼写。")
-        return
+    if start_label in content and end_label in content:
+        # 🌟 终极修复 2：彻底废弃正则！使用最暴力的物理切片法！
+        # 找到开始标签的末尾位置
+        start_idx = content.find(start_label) + len(start_label)
+        # 找到结束标签的起始位置
+        end_idx = content.find(end_label)
 
-    # 正则替换
-    pattern = re.compile(rf"{start_label}.*?{end_label}", re.DOTALL)
-    replacement = f"{start_label}\n{new_catalog}\n{end_label}"
+        # 将中间的内容彻底挖空，强行拼接上新的目录
+        new_content = content[:start_idx] + f"\n{new_catalog}\n" + content[end_idx:]
 
-    new_content = pattern.sub(replacement, content)
-
-    with open("README.md", "w", encoding="utf-8") as f:
-        f.write(new_content)
-    print("✅ README 更新成功！")
+        with open("README.md", "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print("✅ README 更新成功！物理切片执行完毕，绝不可能重复！")
+    else:
+        print("❌ 错误：在 README.md 中找不到标签！请检查拼写。")
 
 
 if __name__ == "__main__":
