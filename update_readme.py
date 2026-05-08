@@ -36,9 +36,9 @@ def generate_catalog():
             # &#91; = [ , &#93; = ]，这样既能正常显示，又不会破坏 Markdown 语法
             safe_title = title.replace("[", "&#91;").replace("]", "&#93;")
 
-            # 🌟 路径处理：GFM 的尖括号语法可以完美处理中文、全角冒号、空格、中括号等所有特殊字符
-            # 完全不需要 URL 编码，保持路径可读性
-            catalog_lines.append(f"- [x] [{safe_title}](<{file_path}>)")
+            # 🌟 路径处理：GFM 的尖括号语法可以完美处理特殊字符
+            # 注意末尾的 \n 绝对不能少！
+            catalog_lines.append(f"- [x] [{safe_title}](<{file_path}>)\n")
 
     return "".join(catalog_lines)
 
@@ -49,6 +49,7 @@ def update_readme():
 
     new_catalog = generate_catalog()
 
+    # 🚨 这里绝对不能是空的！必须是你的注释标签！
     start_label = ""
     end_label = ""
 
