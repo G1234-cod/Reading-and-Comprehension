@@ -1,15 +1,38 @@
 import os
 import re
-import urllib.parse
+
+
+# 假设这是一个遍历文件夹并生成目录的函数
+def generate_catalog(folder):
+    catalog_lines = []
+    for filename in os.listdir(folder):
+        # 安全处理文件名，避免特殊字符问题
+        safe_title = re.sub(r'[^\w\s-]', '', filename)
+
+        # 原始文件路径
+        file_path = f"{folder}/{filename}"
+
+        # URL 编码处理特殊字符（中括号、空格等）
+        encoded_path = quote(file_path, safe='/')
+
+        # 🌟 双重保障：尖括号语法 + URL 编码
+        # 无论路径里有多少个中括号、空格、特殊字符，Markdown 都能完美识别
+        catalog_lines.append(f"- [x] [{safe_title}](<{encoded_path}>)")
+
+    return catalog_lines
+
+
+import os
+import re
 
 
 def generate_catalog():
     catalog_lines = []
-    # 1. 遍历以数字开头的模块文件夹
+    # 自动获取所有以数字开头的文件夹
     folders = sorted([f for f in os.listdir('.') if os.path.isdir(f) and f[0].isdigit()])
 
     for folder in folders:
-        # 优化分类标题显示
+        # 优化文件夹名字显示
         folder_display = folder.replace("_", " ").title()
         if "_" in folder:
             parts = folder.split("_", 1)
@@ -17,29 +40,29 @@ def generate_catalog():
 
         catalog_lines.append(f"\n### {folder_display}\n")
 
-        # 2. 遍历文件夹下的 md 文件
+        # 扫描所有的 .md 文件
         files = sorted([f for f in os.listdir(folder) if f.endswith(".md")])
         for filename in files:
+            # 原始文件路径
             file_path = f"{folder}/{filename}"
 
-            # 3. 读取真实文章标题（不要暴力截断文件名）
+            # 读取文件里的标题
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     line = f.readline().strip()
                     title = line.replace("# 📖 阅读笔记：", "").replace("#", "").strip()
-                    if not title:
+                    if not title:  # 如果第一行是空的，就用文件名
                         title = filename.replace(".md", "")
             except:
                 title = filename.replace(".md", "")
 
-            # 🌟 核心修复 1：标题内部的括号转义，防止打断 Markdown 解析
-            safe_title = title.replace("[", "\\[").replace("]", "\\]")
+            # 🌟 标题处理：使用 HTML 实体编码处理中括号
+            # &#91; = [ , &#93; = ]，这样既能正常显示，又不会破坏 Markdown 语法
+            safe_title = title.replace("[", "&#91;").replace("]", "&#93;")
 
-            # 🌟 核心修复 2：对路径进行合法的 URL 编码（Trae 提供的正确思路）
-            safe_path = urllib.parse.quote(file_path)
-
-            # 生成最终的安全超链接
-            catalog_lines.append(f"- [x] [{safe_title}]({safe_path})\n")
+            # 🌟 路径处理：GFM 的尖括号语法可以完美处理中文、全角冒号、空格、中括号等所有特殊字符
+            # 完全不需要 URL 编码，保持路径可读性
+            catalog_lines.append(f"- [x] [{safe_title}](<{file_path}>)")
 
     return "".join(catalog_lines)
 
@@ -53,16 +76,19 @@ def update_readme():
     start_label = ""
     end_label = ""
 
-    if start_label in content and end_label in content:
-        pattern = re.compile(rf"{start_label}.*?{end_label}", re.DOTALL)
-        replacement = f"{start_label}\n{new_catalog}\n{end_label}"
-        new_content = pattern.sub(replacement, content)
+    if start_label not in content or end_label not in content:
+        print(f"❌ 错误：在 README.md 中找不到标签！请检查拼写。")
+        return
 
-        with open("README.md", "w", encoding="utf-8") as f:
-            f.write(new_content)
-        print("✅ README 目录已完美更新！")
-    else:
-        print("❌ 错误：README.md 中找不到占位符标签。")
+    # 正则替换
+    pattern = re.compile(rf"{start_label}.*?{end_label}", re.DOTALL)
+    replacement = f"{start_label}\n{new_catalog}\n{end_label}"
+
+    new_content = pattern.sub(replacement, content)
+
+    with open("README.md", "w", encoding="utf-8") as f:
+        f.write(new_content)
+    print("✅ README 更新成功！")
 
 
 if __name__ == "__main__":
