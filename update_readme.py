@@ -2,30 +2,6 @@ import os
 import re
 
 
-# 假设这是一个遍历文件夹并生成目录的函数
-def generate_catalog(folder):
-    catalog_lines = []
-    for filename in os.listdir(folder):
-        # 安全处理文件名，避免特殊字符问题
-        safe_title = re.sub(r'[^\w\s-]', '', filename)
-
-        # 原始文件路径
-        file_path = f"{folder}/{filename}"
-
-        # URL 编码处理特殊字符（中括号、空格等）
-        encoded_path = quote(file_path, safe='/')
-
-        # 🌟 双重保障：尖括号语法 + URL 编码
-        # 无论路径里有多少个中括号、空格、特殊字符，Markdown 都能完美识别
-        catalog_lines.append(f"- [x] [{safe_title}](<{encoded_path}>)")
-
-    return catalog_lines
-
-
-import os
-import re
-
-
 def generate_catalog():
     catalog_lines = []
     # 自动获取所有以数字开头的文件夹
