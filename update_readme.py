@@ -41,9 +41,9 @@ def update_readme():
 
     new_catalog = generate_catalog()
 
-    # 🔥 核心修复：定义明确的物理替换锚点（绝不能是空字符串！）
-    start_label = ""
-    end_label = ""
+    #   核心修复：定义明确的物理替换锚点（绝不能是空字符串！）
+    start_label = "<!-- AUTO_CATALOG_START -->"
+    end_label = "<!-- AUTO_CATALOG_END -->"
 
     if start_label in content and end_label in content:
         # 找到标签位置，物理挖空并替换
